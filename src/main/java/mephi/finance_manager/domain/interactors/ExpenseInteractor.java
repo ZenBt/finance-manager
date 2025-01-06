@@ -8,16 +8,20 @@ import mephi.finance_manager.domain.dto.ExpenseDto;
 import mephi.finance_manager.domain.exceptions.PermissionDeniedException;
 import mephi.finance_manager.domain.exceptions.TokenNotFoundOrExpiredException;
 import mephi.finance_manager.domain.repositories.ExpenseRepository;
+import mephi.finance_manager.domain.repositories.UserRepository;
 import mephi.finance_manager.domain.repositories.UserTokenRepository;
 
 public class ExpenseInteractor {
 
     private final UserTokenRepository userTokenRepo;
+    private final UserRepository userRepo;
     private final ExpenseRepository expenseRepo;
 
-    public ExpenseInteractor(UserTokenRepository userTokenRepo, ExpenseRepository expenseRepo) {
+    public ExpenseInteractor(UserTokenRepository userTokenRepo, ExpenseRepository expenseRepo,
+            UserRepository userRepo) {
         this.userTokenRepo = userTokenRepo;
         this.expenseRepo = expenseRepo;
+        this.userRepo = userRepo;
     }
 
     public List<ExpenseDto> getAllExpensesByUserToken(String userToken) throws TokenNotFoundOrExpiredException {
@@ -37,6 +41,7 @@ public class ExpenseInteractor {
             throws TokenNotFoundOrExpiredException {
         Long userId = getUserIdFromToken(userToken);
         ExpenseDto expense = expenseRepo.addExpenseForUser(userId, categoryId, amountSpent);
+        userRepo.decreaseMoneyAmount(userId, amountSpent);
         return expense;
     }
 
@@ -51,6 +56,7 @@ public class ExpenseInteractor {
             throw new PermissionDeniedException("Невозможно удалить чужую трату");
         }
         expenseRepo.deleteExpenseById(expenseId);
+        userRepo.increaseMoneyAmount(userId, optionalExpense.get().getAmountSpent());
     }
 
     private Long getUserIdFromToken(String token) throws TokenNotFoundOrExpiredException {

@@ -37,11 +37,11 @@ public class CategoryInteractor {
     public void deleteCategoryByIdAndToken(String userToken, Long categoryId)
             throws TokenNotFoundOrExpiredException, PermissionDeniedException {
         Long userId = getUserIdFromToken(userToken);
-        Optional<CategoryDto> optinalCategory = categoryRepo.getCategoryById(categoryId);
-        if (optinalCategory.isEmpty()) {
+        Optional<CategoryDto> optionalCategory = categoryRepo.getCategoryById(categoryId);
+        if (optionalCategory.isEmpty()) {
             return;
         }
-        if (!optinalCategory.get().getUser().getUserId().equals(userId)) {
+        if (!optionalCategory.get().getUser().getUserId().equals(userId)) {
             throw new PermissionDeniedException("Невозможно удалить чужую категорию");
         }
 
@@ -52,26 +52,37 @@ public class CategoryInteractor {
     public void changeCategoryBudgetByIdAndToken(String userToken, Long categoryId, BigDecimal budget)
             throws TokenNotFoundOrExpiredException, PermissionDeniedException, CategoryNotFoundException {
         Long userId = getUserIdFromToken(userToken);
-        Optional<CategoryDto> optinalCategory = categoryRepo.getCategoryById(categoryId);
-        if (optinalCategory.isEmpty()) {
+        Optional<CategoryDto> optionalCategory = categoryRepo.getCategoryById(categoryId);
+        if (optionalCategory.isEmpty()) {
             throw new CategoryNotFoundException("Категория не найдена");
         }
-        if (!optinalCategory.get().getUser().getUserId().equals(userId)) {
+        if (!optionalCategory.get().getUser().getUserId().equals(userId)) {
             throw new PermissionDeniedException("Невозможно изменить чужую категорию");
         }
+
+        CategoryDto category = optionalCategory.get();
+
+        category.setBudget(budget);
+        categoryRepo.updateCategory(category);
+
     }
 
     public void changeCategoryNameByIdAndToken(String userToken, Long categoryId, String name)
             throws TokenNotFoundOrExpiredException, PermissionDeniedException, CategoryNotFoundException {
         Long userId = getUserIdFromToken(userToken);
 
-        Optional<CategoryDto> optinalCategory = categoryRepo.getCategoryById(categoryId);
-        if (optinalCategory.isEmpty()) {
+        Optional<CategoryDto> optionalCategory = categoryRepo.getCategoryById(categoryId);
+        if (optionalCategory.isEmpty()) {
             throw new CategoryNotFoundException("Категория не найдена");
         }
-        if (!optinalCategory.get().getUser().getUserId().equals(userId)) {
+        if (!optionalCategory.get().getUser().getUserId().equals(userId)) {
             throw new PermissionDeniedException("Невозможно изменить чужую категорию");
         }
+
+        CategoryDto category = optionalCategory.get();
+
+        category.setName(name);
+        categoryRepo.updateCategory(category);
 
     }
 

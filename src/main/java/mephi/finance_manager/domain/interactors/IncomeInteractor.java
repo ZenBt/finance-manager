@@ -8,15 +8,18 @@ import mephi.finance_manager.domain.dto.IncomeDto;
 import mephi.finance_manager.domain.exceptions.PermissionDeniedException;
 import mephi.finance_manager.domain.exceptions.TokenNotFoundOrExpiredException;
 import mephi.finance_manager.domain.repositories.IncomeRepository;
+import mephi.finance_manager.domain.repositories.UserRepository;
 import mephi.finance_manager.domain.repositories.UserTokenRepository;
 
 public class IncomeInteractor {
     private final UserTokenRepository userTokenRepo;
+    private final UserRepository userRepo;
     private final IncomeRepository incomeRepo;
 
-    public IncomeInteractor(IncomeRepository incomeRepo, UserTokenRepository userTokenRepo) {
+    public IncomeInteractor(IncomeRepository incomeRepo, UserTokenRepository userTokenRepo, UserRepository userRepo) {
         this.incomeRepo = incomeRepo;
         this.userTokenRepo = userTokenRepo;
+        this.userRepo = userRepo;
     }
 
     public List<IncomeDto> getAllIncomesByUserToken(String userToken) throws TokenNotFoundOrExpiredException {
@@ -32,10 +35,11 @@ public class IncomeInteractor {
         return incomes;
     }
 
-    public IncomeDto addIncomeForUserByToken(String userToken, Long categoryId, BigDecimal amountSpent)
+    public IncomeDto addIncomeForUserByToken(String userToken, Long categoryId, BigDecimal amountReceived)
             throws TokenNotFoundOrExpiredException {
         Long userId = getUserIdFromToken(userToken);
-        IncomeDto income = incomeRepo.addIncomeForUser(userId, categoryId, amountSpent);
+        IncomeDto income = incomeRepo.addIncomeForUser(userId, categoryId, amountReceived);
+        userRepo.increaseMoneyAmount(userId, amountReceived);
         return income;
     }
 
@@ -50,6 +54,7 @@ public class IncomeInteractor {
             throw new PermissionDeniedException("Невозможно удалить чужое поступление");
         }
         incomeRepo.deleteIncomeById(IncomeId);
+        userRepo.decreaseMoneyAmount(userId, optionalIncome.get().getAmountReceived());
     }
 
     private Long getUserIdFromToken(String token) throws TokenNotFoundOrExpiredException {

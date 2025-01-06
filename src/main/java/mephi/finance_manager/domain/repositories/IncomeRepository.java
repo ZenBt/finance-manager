@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import mephi.finance_manager.domain.dto.IncomeDto;
+import mephi.finance_manager.domain.dto.PerCategoryMoney;
 
 public abstract class IncomeRepository {
     public abstract List<IncomeDto> findIncomesByUserId(Long userId);
@@ -16,4 +17,9 @@ public abstract class IncomeRepository {
     public abstract Optional<IncomeDto> getIncomeById(Long incomeId);
 
     public abstract void deleteIncomeById(Long incomeId);
+
+    public abstract BigDecimal getOverallIncome(Long userId);
+
+    public abstract List<PerCategoryMoney> getOverallIncomePerCategory(Long userId);
+
 }

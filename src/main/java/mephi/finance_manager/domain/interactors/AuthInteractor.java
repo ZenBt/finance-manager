@@ -37,4 +37,8 @@ public class AuthInteractor {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         return encoder.encode(rawPassword).equals(hashedPassword);
     }
+
+    public void logOutByToken(String token) {
+        userTokenRepo.logOutByToken(token);
+    }
 }

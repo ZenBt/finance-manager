@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import mephi.finance_manager.data.models.User;
 import mephi.finance_manager.domain.dto.UserDto;
@@ -15,36 +15,61 @@ import mephi.finance_manager.domain.repositories.UserRepository;
 @Repository
 public class UserRepositoryImpl extends UserRepository {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
+
+    public UserRepositoryImpl(jakarta.persistence.EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Override
     public UserDto createUser(String login, String hashedPassword) {
-        // Создаем объект User
         User user = new User();
         user.setLogin(login);
         user.setPassword(hashedPassword);
         user.setAmountMoney(BigDecimal.ZERO); // Изначально устанавливаем нулевое количество денег
 
-        // Сохраняем пользователя в базе данных
         entityManager.persist(user);
 
-        // Возвращаем UserDto после сохранения
         return mapToUserDto(user);
     }
 
     @Override
     public Optional<UserDto> getUserByLogin(String login) {
-        // Пытаемся найти пользователя по логину
         TypedQuery<User> query = entityManager.createQuery(
-                "SELECT u FROM User u WHERE u.login = :login", User.class);
+                "SELECT u FROM users u WHERE u.login = :login", User.class);
         query.setParameter("login", login);
 
-        // Получаем результат
         User user = query.getResultStream().findFirst().orElse(null);
 
-        // Если пользователя нет, возвращаем пустой Optional
         return Optional.ofNullable(user).map(this::mapToUserDto);
+    }
+
+    @Override
+    public Optional<UserDto> getUserById(Long userId) {
+        User user = entityManager.find(User.class, userId);
+
+        return Optional.ofNullable(user).map(this::mapToUserDto);
+    }
+
+    @Override
+    @Transactional
+    public void decreaseMoneyAmount(Long userId, BigDecimal moneyAmount) {
+        entityManager.createQuery(
+                "UPDATE users u SET u.amountMoney = u.amountMoney - :moneyAmount WHERE u.id = :userId")
+                .setParameter("moneyAmount", moneyAmount)
+                .setParameter("userId", userId)
+                .executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void increaseMoneyAmount(Long userId, BigDecimal moneyAmount) {
+        entityManager.createQuery(
+                "UPDATE users u SET u.amountMoney = u.amountMoney + :moneyAmount WHERE u.id = :userId")
+                .setParameter("moneyAmount", moneyAmount)
+                .setParameter("userId", userId)
+                .executeUpdate();
+
     }
 
     private UserDto mapToUserDto(User user) {
