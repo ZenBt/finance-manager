@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import mephi.finance_manager.data.models.Category;
@@ -16,6 +19,7 @@ import mephi.finance_manager.domain.dto.PerCategoryMoney;
 import mephi.finance_manager.domain.dto.UserDto;
 import mephi.finance_manager.domain.repositories.IncomeRepository;
 
+@Repository
 public class IncomeRepositoryImpl extends IncomeRepository {
     private final EntityManager entityManager;
 
@@ -45,6 +49,7 @@ public class IncomeRepositoryImpl extends IncomeRepository {
     }
 
     @Override
+    @Transactional
     public IncomeDto addIncomeForUser(Long userId, Long categoryId, BigDecimal amountReceived) {
         Income income = new Income();
         income.setUser(entityManager.getReference(User.class, userId));
@@ -65,6 +70,7 @@ public class IncomeRepositoryImpl extends IncomeRepository {
     }
 
     @Override
+    @Transactional
     public void deleteIncomeById(Long incomeId) {
         Income income = entityManager.find(Income.class, incomeId);
         if (income != null) {

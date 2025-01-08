@@ -35,7 +35,7 @@ public class AuthInteractor {
 
     private boolean isPasswordMatchesHash(String rawPassword, String hashedPassword) {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        return encoder.encode(rawPassword).equals(hashedPassword);
+        return encoder.matches(rawPassword, hashedPassword);
     }
 
     public void logOutByToken(String token) {

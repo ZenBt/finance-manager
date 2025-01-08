@@ -2,6 +2,7 @@ package mephi.finance_manager.presenters.controllers;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.validation.Valid;
 import mephi.finance_manager.domain.dto.IncomeDto;
+import mephi.finance_manager.domain.exceptions.CategoryNotFoundException;
 import mephi.finance_manager.domain.exceptions.PermissionDeniedException;
 import mephi.finance_manager.domain.exceptions.TokenNotFoundOrExpiredException;
 import mephi.finance_manager.domain.interactors.IncomeInteractor;
@@ -36,7 +40,7 @@ public class IncomeController {
             List<IncomeDto> incomes = incomeInteractor.getAllIncomesByUserToken(token);
             return ResponseEntity.ok(incomes);
         } catch (TokenNotFoundOrExpiredException e) {
-            return ResponseEntity.status(401).body(null);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
@@ -48,20 +52,22 @@ public class IncomeController {
             List<IncomeDto> incomes = incomeInteractor.getIncomesByUserTokenAndCategories(token, categoryIds);
             return ResponseEntity.ok(incomes);
         } catch (TokenNotFoundOrExpiredException e) {
-            return ResponseEntity.status(401).body(null);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
     @PostMapping
     public ResponseEntity<IncomeDto> addIncome(@RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody AddIncomeRequest request) {
+            @Valid @RequestBody AddIncomeRequest request) {
         try {
             String token = extractTokenFromHeader(authorizationHeader);
             IncomeDto income = incomeInteractor.addIncomeForUserByToken(token, request.getCategoryId(),
                     request.getAmountReceived());
             return ResponseEntity.ok(income);
         } catch (TokenNotFoundOrExpiredException e) {
-            return ResponseEntity.status(401).body(null);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        } catch (CategoryNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
@@ -73,15 +79,15 @@ public class IncomeController {
             incomeInteractor.deleteIncomeForUserByIdAndToken(token, incomeId);
             return ResponseEntity.noContent().build();
         } catch (TokenNotFoundOrExpiredException e) {
-            return ResponseEntity.status(401).build();
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         } catch (PermissionDeniedException e) {
-            return ResponseEntity.status(403).build();
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         }
     }
 
     private String extractTokenFromHeader(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Invalid Authorization header");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Authorization header must starts with Bearer");
         }
         return authorizationHeader.substring(7); // Remove "Bearer " prefix
     }

@@ -19,6 +19,7 @@ public class CategoryDto {
         this.budget = budget;
         this.name = name;
         this.user = user;
+        this.categoryType = categoryType;
     }
 
     public Long getId() {

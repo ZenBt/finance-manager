@@ -22,6 +22,7 @@ public class UserRepositoryImpl extends UserRepository {
     }
 
     @Override
+    @Transactional
     public UserDto createUser(String login, String hashedPassword) {
         User user = new User();
         user.setLogin(login);
@@ -36,7 +37,7 @@ public class UserRepositoryImpl extends UserRepository {
     @Override
     public Optional<UserDto> getUserByLogin(String login) {
         TypedQuery<User> query = entityManager.createQuery(
-                "SELECT u FROM users u WHERE u.login = :login", User.class);
+                "SELECT u FROM User u WHERE u.login = :login", User.class);
         query.setParameter("login", login);
 
         User user = query.getResultStream().findFirst().orElse(null);
@@ -55,7 +56,7 @@ public class UserRepositoryImpl extends UserRepository {
     @Transactional
     public void decreaseMoneyAmount(Long userId, BigDecimal moneyAmount) {
         entityManager.createQuery(
-                "UPDATE users u SET u.amountMoney = u.amountMoney - :moneyAmount WHERE u.id = :userId")
+                "UPDATE User u SET u.amountMoney = u.amountMoney - :moneyAmount WHERE u.id = :userId")
                 .setParameter("moneyAmount", moneyAmount)
                 .setParameter("userId", userId)
                 .executeUpdate();
@@ -65,7 +66,7 @@ public class UserRepositoryImpl extends UserRepository {
     @Transactional
     public void increaseMoneyAmount(Long userId, BigDecimal moneyAmount) {
         entityManager.createQuery(
-                "UPDATE users u SET u.amountMoney = u.amountMoney + :moneyAmount WHERE u.id = :userId")
+                "UPDATE User u SET u.amountMoney = u.amountMoney + :moneyAmount WHERE u.id = :userId")
                 .setParameter("moneyAmount", moneyAmount)
                 .setParameter("userId", userId)
                 .executeUpdate();

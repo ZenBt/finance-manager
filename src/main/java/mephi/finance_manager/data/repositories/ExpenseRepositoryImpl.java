@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import mephi.finance_manager.data.models.Category;
@@ -16,6 +19,7 @@ import mephi.finance_manager.domain.dto.PerCategoryMoney;
 import mephi.finance_manager.domain.dto.UserDto;
 import mephi.finance_manager.domain.repositories.ExpenseRepository;
 
+@Repository
 public class ExpenseRepositoryImpl extends ExpenseRepository {
     private final EntityManager entityManager;
 
@@ -26,7 +30,7 @@ public class ExpenseRepositoryImpl extends ExpenseRepository {
     @Override
     public List<ExpenseDto> findExpensesByUserId(Long userId) {
         TypedQuery<Expense> query = entityManager.createQuery(
-                "SELECT * FROM expense e WHERE e.userId = :userId", Expense.class);
+                "SELECT e FROM Expense e WHERE e.user.id = :userId", Expense.class);
         query.setParameter("userId", userId);
 
         List<Expense> expenses = query.getResultList();
@@ -36,7 +40,7 @@ public class ExpenseRepositoryImpl extends ExpenseRepository {
     @Override
     public List<ExpenseDto> findExpensesByUserIdAndCategories(Long userId, Long[] categoryIds) {
         TypedQuery<Expense> query = entityManager.createQuery(
-                "SELECT i FROM expense i WHERE i.user.id = :userId AND i.category.id IN :categoryIds", Expense.class);
+                "SELECT i FROM Expense i WHERE i.user.id = :userId AND i.category.id IN :categoryIds", Expense.class);
         query.setParameter("userId", userId);
         query.setParameter("categoryIds", List.of(categoryIds));
 
@@ -45,6 +49,7 @@ public class ExpenseRepositoryImpl extends ExpenseRepository {
     }
 
     @Override
+    @Transactional
     public ExpenseDto addExpenseForUser(Long userId, Long categoryId, BigDecimal amountSpent) {
         Expense expense = new Expense();
         expense.setUser(entityManager.getReference(User.class, userId));
@@ -65,6 +70,7 @@ public class ExpenseRepositoryImpl extends ExpenseRepository {
     }
 
     @Override
+    @Transactional
     public void deleteExpenseById(Long expenseId) {
         Expense expense = entityManager.find(Expense.class, expenseId);
         if (expense != null) {
@@ -75,7 +81,7 @@ public class ExpenseRepositoryImpl extends ExpenseRepository {
     @Override
     public BigDecimal getOverallExpense(Long userId) {
         TypedQuery<BigDecimal> query = entityManager.createQuery(
-                "SELECT COALESCE(SUM(i.amountReceived), 0) FROM expense i WHERE i.user.id = :userId", BigDecimal.class);
+                "SELECT COALESCE(SUM(i.amountSpent), 0) FROM Expense i WHERE i.user.id = :userId", BigDecimal.class);
         query.setParameter("userId", userId);
 
         return query.getSingleResult();
@@ -84,9 +90,9 @@ public class ExpenseRepositoryImpl extends ExpenseRepository {
     @Override
     public List<PerCategoryMoney> getOverallExpensePerCategory(Long userId) {
         TypedQuery<PerCategoryMoney> query = entityManager.createQuery(
-                "SELECT new mephi.finance_manager.domain.dto.PerCategoryMoney(i.category.id, i.category.name, SUM(i.amountReceived)) "
+                "SELECT new PerCategoryMoney(i.category.id, i.category.name, SUM(i.amountSpent)) "
                         +
-                        "FROM expense i WHERE i.user.id = :userId GROUP BY i.category.id, i.category.name",
+                        "FROM Expense i WHERE i.user.id = :userId GROUP BY i.category.id, i.category.name",
                 PerCategoryMoney.class);
         query.setParameter("userId", userId);
 

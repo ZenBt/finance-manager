@@ -4,9 +4,13 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import mephi.finance_manager.data.models.Category.CategoryType;
+import mephi.finance_manager.domain.dto.CategoryDto;
 import mephi.finance_manager.domain.dto.ExpenseDto;
+import mephi.finance_manager.domain.exceptions.CategoryNotFoundException;
 import mephi.finance_manager.domain.exceptions.PermissionDeniedException;
 import mephi.finance_manager.domain.exceptions.TokenNotFoundOrExpiredException;
+import mephi.finance_manager.domain.repositories.CategoryRepository;
 import mephi.finance_manager.domain.repositories.ExpenseRepository;
 import mephi.finance_manager.domain.repositories.UserRepository;
 import mephi.finance_manager.domain.repositories.UserTokenRepository;
@@ -16,12 +20,14 @@ public class ExpenseInteractor {
     private final UserTokenRepository userTokenRepo;
     private final UserRepository userRepo;
     private final ExpenseRepository expenseRepo;
+    private final CategoryRepository categoryRepo;
 
     public ExpenseInteractor(UserTokenRepository userTokenRepo, ExpenseRepository expenseRepo,
-            UserRepository userRepo) {
+            UserRepository userRepo, CategoryRepository categoryRepo) {
         this.userTokenRepo = userTokenRepo;
         this.expenseRepo = expenseRepo;
         this.userRepo = userRepo;
+        this.categoryRepo = categoryRepo;
     }
 
     public List<ExpenseDto> getAllExpensesByUserToken(String userToken) throws TokenNotFoundOrExpiredException {
@@ -38,8 +44,9 @@ public class ExpenseInteractor {
     }
 
     public ExpenseDto addExpenseForUserByToken(String userToken, Long categoryId, BigDecimal amountSpent)
-            throws TokenNotFoundOrExpiredException {
+            throws TokenNotFoundOrExpiredException, CategoryNotFoundException {
         Long userId = getUserIdFromToken(userToken);
+        isCategoryExists(categoryId);
         ExpenseDto expense = expenseRepo.addExpenseForUser(userId, categoryId, amountSpent);
         userRepo.decreaseMoneyAmount(userId, amountSpent);
         return expense;
@@ -65,5 +72,12 @@ public class ExpenseInteractor {
             throw new TokenNotFoundOrExpiredException();
         }
         return userId.get();
+    }
+
+    private void isCategoryExists(Long categoryId) throws CategoryNotFoundException {
+        Optional<CategoryDto> cat = categoryRepo.getCategoryById(categoryId);
+        if (cat.isEmpty() || cat.get().getCategoryType() == CategoryType.INCOME) {
+            throw new CategoryNotFoundException("Категория не найдена");
+        }
     }
 }

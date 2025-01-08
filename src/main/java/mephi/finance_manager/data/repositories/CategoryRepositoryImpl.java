@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
@@ -14,6 +15,7 @@ import mephi.finance_manager.domain.dto.CategoryDto;
 import mephi.finance_manager.domain.dto.UserDto;
 import mephi.finance_manager.domain.repositories.CategoryRepository;
 
+@Repository
 public class CategoryRepositoryImpl extends CategoryRepository {
     private final EntityManager entityManager;
 

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import mephi.finance_manager.data.models.Category.CategoryType;
 import mephi.finance_manager.domain.dto.BudgetExceededAlertDto;
 import mephi.finance_manager.domain.dto.BudgetExceededAlertDto.CategoryWithBudgetDeficit;
 import mephi.finance_manager.domain.dto.BudgetStatDto;
@@ -67,11 +68,11 @@ public class AnalyticsInteractor {
         BigDecimal currentBalance = optionalUser.get().getAmountMoney();
 
         List<CategoryDto> userCategories = categoryRepo.findCategoriesByUserId(userId);
+        userCategories.removeIf(cat -> cat.getCategoryType() == CategoryType.INCOME);
 
         Map<Long, PerCategoryMoney> expensesMap = toHashMap(expenseRepo.getOverallExpensePerCategory(userId));
-        Map<Long, PerCategoryMoney> incomesMap = toHashMap(incomeRepo.getOverallIncomePerCategory(userId));
 
-        List<PerCategoryMoney> perCategoryBudget = getBudgetLeftPerCategory(userCategories, expensesMap, incomesMap);
+        List<PerCategoryMoney> perCategoryBudget = getBudgetLeftPerCategory(userCategories, expensesMap);
 
         return new BudgetStatDto(currentBalance, perCategoryBudget);
     }
@@ -86,14 +87,14 @@ public class AnalyticsInteractor {
         BigDecimal overallIncome = incomeRepo.getOverallIncome(userId);
 
         List<CategoryDto> userCategories = categoryRepo.findCategoriesByUserId(userId);
+        userCategories.removeIf(cat -> cat.getCategoryType() == CategoryType.INCOME);
 
         Map<Long, PerCategoryMoney> expensesMap = toHashMap(expenseRepo.getOverallExpensePerCategory(userId));
-        Map<Long, PerCategoryMoney> incomesMap = toHashMap(incomeRepo.getOverallIncomePerCategory(userId));
 
         BudgetExceededAlertDto alertDto = new BudgetExceededAlertDto();
 
         alertDto.setIsExpensesMoreThanIncomes(overallIncome.compareTo(overallExpense) == -1);
-        setCategoriesWithBudgetDeficit(alertDto, userCategories, expensesMap, incomesMap);
+        setCategoriesWithBudgetDeficit(alertDto, userCategories, expensesMap);
 
         return alertDto;
     }
@@ -107,15 +108,14 @@ public class AnalyticsInteractor {
     }
 
     private List<PerCategoryMoney> getBudgetLeftPerCategory(List<CategoryDto> userCategories,
-            Map<Long, PerCategoryMoney> expensesMap, Map<Long, PerCategoryMoney> incomesMap) {
+            Map<Long, PerCategoryMoney> expensesMap) {
         List<PerCategoryMoney> lst = new ArrayList<>();
 
         for (CategoryDto cat : userCategories) {
             BigDecimal amountSpent = expensesMap
-                    .getOrDefault(cat, new PerCategoryMoney(cat.getId(), cat.getName(), BigDecimal.ZERO)).getAmount();
-            BigDecimal amountReceived = incomesMap
-                    .getOrDefault(cat, new PerCategoryMoney(cat.getId(), cat.getName(), BigDecimal.ZERO)).getAmount();
-            BigDecimal amountLeft = amountReceived.subtract(amountSpent);
+                    .getOrDefault(cat.getId(), new PerCategoryMoney(cat.getId(), cat.getName(), BigDecimal.ZERO))
+                    .getAmount();
+            BigDecimal amountLeft = cat.getBudget().subtract(amountSpent);
             lst.add(new PerCategoryMoney(cat.getId(), cat.getName(), amountLeft));
         }
 
@@ -123,15 +123,14 @@ public class AnalyticsInteractor {
     }
 
     private void setCategoriesWithBudgetDeficit(BudgetExceededAlertDto alertDto, List<CategoryDto> userCategories,
-            Map<Long, PerCategoryMoney> expensesMap, Map<Long, PerCategoryMoney> incomesMap) {
+            Map<Long, PerCategoryMoney> expensesMap) {
         List<CategoryWithBudgetDeficit> lst = new ArrayList<>();
 
         for (CategoryDto cat : userCategories) {
             BigDecimal amountSpent = expensesMap
-                    .getOrDefault(cat, new PerCategoryMoney(cat.getId(), cat.getName(), BigDecimal.ZERO)).getAmount();
-            BigDecimal amountReceived = incomesMap
-                    .getOrDefault(cat, new PerCategoryMoney(cat.getId(), cat.getName(), BigDecimal.ZERO)).getAmount();
-            BigDecimal amountLeft = amountReceived.subtract(amountSpent);
+                    .getOrDefault(cat.getId(), new PerCategoryMoney(cat.getId(), cat.getName(), BigDecimal.ZERO))
+                    .getAmount();
+            BigDecimal amountLeft = cat.getBudget().subtract(amountSpent);
             if (amountLeft.compareTo(BigDecimal.ZERO) == -1) {
                 lst.add(alertDto.new CategoryWithBudgetDeficit(cat.getId(), cat.getName()));
             }

@@ -6,19 +6,27 @@ import java.util.Optional;
 
 import mephi.finance_manager.data.models.Category.CategoryType;
 import mephi.finance_manager.domain.dto.CategoryDto;
+import mephi.finance_manager.domain.exceptions.CategoryDeletionFailedException;
 import mephi.finance_manager.domain.exceptions.CategoryNotFoundException;
 import mephi.finance_manager.domain.exceptions.PermissionDeniedException;
 import mephi.finance_manager.domain.exceptions.TokenNotFoundOrExpiredException;
 import mephi.finance_manager.domain.repositories.CategoryRepository;
+import mephi.finance_manager.domain.repositories.ExpenseRepository;
+import mephi.finance_manager.domain.repositories.IncomeRepository;
 import mephi.finance_manager.domain.repositories.UserTokenRepository;
 
 public class CategoryInteractor {
     private final CategoryRepository categoryRepo;
     private final UserTokenRepository userTokenRepo;
+    private final ExpenseRepository expenseRepo;
+    private final IncomeRepository incomeRepo;
 
-    public CategoryInteractor(CategoryRepository categoryRepo, UserTokenRepository userTokenRepo) {
+    public CategoryInteractor(CategoryRepository categoryRepo, UserTokenRepository userTokenRepo,
+            ExpenseRepository expenseRepo, IncomeRepository incomeRepo) {
         this.categoryRepo = categoryRepo;
         this.userTokenRepo = userTokenRepo;
+        this.expenseRepo = expenseRepo;
+        this.incomeRepo = incomeRepo;
     }
 
     public List<CategoryDto> getCategoriesByUserToken(String userToken) throws TokenNotFoundOrExpiredException {
@@ -35,7 +43,7 @@ public class CategoryInteractor {
     }
 
     public void deleteCategoryByIdAndToken(String userToken, Long categoryId)
-            throws TokenNotFoundOrExpiredException, PermissionDeniedException {
+            throws TokenNotFoundOrExpiredException, PermissionDeniedException, CategoryDeletionFailedException {
         Long userId = getUserIdFromToken(userToken);
         Optional<CategoryDto> optionalCategory = categoryRepo.getCategoryById(categoryId);
         if (optionalCategory.isEmpty()) {
@@ -44,7 +52,16 @@ public class CategoryInteractor {
         if (!optionalCategory.get().getUser().getUserId().equals(userId)) {
             throw new PermissionDeniedException("Невозможно удалить чужую категорию");
         }
-
+        if (optionalCategory.get().getCategoryType() == CategoryType.EXPENSE
+                && !expenseRepo.findExpensesByUserIdAndCategories(userId, new Long[] { categoryId }).isEmpty()) {
+            throw new CategoryDeletionFailedException(
+                    "Невозможно удалить категорию, т.к. существуют неудаленные расходы");
+        }
+        if (optionalCategory.get().getCategoryType() == CategoryType.INCOME
+                && !incomeRepo.findIncomesByUserIdAndCategories(userId, new Long[] { categoryId }).isEmpty()) {
+            throw new CategoryDeletionFailedException(
+                    "Невозможно удалить категорию, т.к. существуют неудаленные доходы");
+        }
         categoryRepo.deleteCategory(categoryId);
 
     }

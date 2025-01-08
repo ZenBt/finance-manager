@@ -1,10 +1,12 @@
 package mephi.finance_manager.presenters.controllers;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import mephi.finance_manager.domain.dto.BudgetExceededAlertDto;
 import mephi.finance_manager.domain.dto.BudgetStatDto;
@@ -31,7 +33,7 @@ public class AnalyticsController {
             MoneyStatDto stats = analyticsInteractor.getOverallMoneyStatisticForUserByToken(token, 0);
             return ResponseEntity.ok(stats);
         } catch (TokenNotFoundOrExpiredException e) {
-            return ResponseEntity.status(401).body(null);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
@@ -42,7 +44,7 @@ public class AnalyticsController {
             BudgetStatDto stats = analyticsInteractor.getBudgetStatForUserByToken(token);
             return ResponseEntity.ok(stats);
         } catch (TokenNotFoundOrExpiredException e) {
-            return ResponseEntity.status(401).body(null);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         } catch (NoSuchUserException e) {
             return ResponseEntity.status(404).body(null);
         }
@@ -56,13 +58,13 @@ public class AnalyticsController {
             BudgetExceededAlertDto alert = analyticsInteractor.getAlertForBudgetByUserToken(token);
             return ResponseEntity.ok(alert);
         } catch (TokenNotFoundOrExpiredException e) {
-            return ResponseEntity.status(401).body(null);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
     private String extractTokenFromHeader(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Invalid Authorization header");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Authorization header must starts with Bearer");
         }
         return authorizationHeader.substring(7); // Remove "Bearer " prefix
     }

@@ -1,10 +1,12 @@
 package mephi.finance_manager.presenters.controllers;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import mephi.finance_manager.domain.exceptions.RegistrationFailedException;
 import mephi.finance_manager.domain.interactors.RegistrationInteractor;
@@ -25,7 +27,7 @@ public class RegistrationController {
             String token = registrationInteractor.registerUser(login, password);
             return ResponseEntity.ok(token);
         } catch (RegistrationFailedException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 }

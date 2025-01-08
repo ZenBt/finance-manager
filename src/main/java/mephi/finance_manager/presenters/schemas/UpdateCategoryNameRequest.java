@@ -1,11 +1,13 @@
 package mephi.finance_manager.presenters.schemas;
 
-import java.math.BigDecimal;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
-public class UpdateCategoryRequest {
+public class UpdateCategoryNameRequest {
 
+    @NotNull
+    @NotBlank
     private String categoryName;
-    private BigDecimal budget;
 
     public String getCategoryName() {
         return categoryName;
@@ -13,13 +15,5 @@ public class UpdateCategoryRequest {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
-    }
-
-    public BigDecimal getBudget() {
-        return budget;
-    }
-
-    public void setBudget(BigDecimal budget) {
-        this.budget = budget;
     }
 }

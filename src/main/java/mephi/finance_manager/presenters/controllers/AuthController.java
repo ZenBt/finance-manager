@@ -1,11 +1,13 @@
 package mephi.finance_manager.presenters.controllers;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import mephi.finance_manager.domain.exceptions.AuthFailedException;
 import mephi.finance_manager.domain.interactors.AuthInteractor;
@@ -26,7 +28,7 @@ public class AuthController {
             String token = authInteractor.getAuthToken(login, password);
             return ResponseEntity.ok(token);
         } catch (AuthFailedException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
@@ -39,7 +41,7 @@ public class AuthController {
 
     private String extractTokenFromHeader(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Invalid Authorization header");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Authorization header must starts with Bearer");
         }
         return authorizationHeader.substring(7); // Remove "Bearer " prefix
     }

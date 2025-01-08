@@ -4,9 +4,13 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import mephi.finance_manager.data.models.Category.CategoryType;
+import mephi.finance_manager.domain.dto.CategoryDto;
 import mephi.finance_manager.domain.dto.IncomeDto;
+import mephi.finance_manager.domain.exceptions.CategoryNotFoundException;
 import mephi.finance_manager.domain.exceptions.PermissionDeniedException;
 import mephi.finance_manager.domain.exceptions.TokenNotFoundOrExpiredException;
+import mephi.finance_manager.domain.repositories.CategoryRepository;
 import mephi.finance_manager.domain.repositories.IncomeRepository;
 import mephi.finance_manager.domain.repositories.UserRepository;
 import mephi.finance_manager.domain.repositories.UserTokenRepository;
@@ -15,11 +19,14 @@ public class IncomeInteractor {
     private final UserTokenRepository userTokenRepo;
     private final UserRepository userRepo;
     private final IncomeRepository incomeRepo;
+    private final CategoryRepository categoryRepo;
 
-    public IncomeInteractor(IncomeRepository incomeRepo, UserTokenRepository userTokenRepo, UserRepository userRepo) {
+    public IncomeInteractor(IncomeRepository incomeRepo, UserTokenRepository userTokenRepo, UserRepository userRepo,
+            CategoryRepository categoryRepo) {
         this.incomeRepo = incomeRepo;
         this.userTokenRepo = userTokenRepo;
         this.userRepo = userRepo;
+        this.categoryRepo = categoryRepo;
     }
 
     public List<IncomeDto> getAllIncomesByUserToken(String userToken) throws TokenNotFoundOrExpiredException {
@@ -36,8 +43,9 @@ public class IncomeInteractor {
     }
 
     public IncomeDto addIncomeForUserByToken(String userToken, Long categoryId, BigDecimal amountReceived)
-            throws TokenNotFoundOrExpiredException {
+            throws TokenNotFoundOrExpiredException, CategoryNotFoundException {
         Long userId = getUserIdFromToken(userToken);
+        isCategoryExists(categoryId);
         IncomeDto income = incomeRepo.addIncomeForUser(userId, categoryId, amountReceived);
         userRepo.increaseMoneyAmount(userId, amountReceived);
         return income;
@@ -63,5 +71,13 @@ public class IncomeInteractor {
             throw new TokenNotFoundOrExpiredException();
         }
         return userId.get();
+    }
+
+    private void isCategoryExists(Long categoryId) throws CategoryNotFoundException {
+        Optional<CategoryDto> cat = categoryRepo.getCategoryById(categoryId);
+        if (cat.isEmpty() || cat.get().getCategoryType() == CategoryType.EXPENSE) {
+            throw new CategoryNotFoundException("Категория не найдена");
+        }
+        System.out.println(cat.get().getCategoryType());
     }
 }

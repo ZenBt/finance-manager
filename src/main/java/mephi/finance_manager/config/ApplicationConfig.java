@@ -2,14 +2,7 @@ package mephi.finance_manager.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.core.StringRedisTemplate;
 
-import jakarta.persistence.EntityManager;
-import mephi.finance_manager.data.repositories.CategoryRepositoryImpl;
-import mephi.finance_manager.data.repositories.ExpenseRepositoryImpl;
-import mephi.finance_manager.data.repositories.IncomeRepositoryImpl;
-import mephi.finance_manager.data.repositories.UserRepositoryImpl;
-import mephi.finance_manager.data.repositories.UserTokenRepositoryImpl;
 import mephi.finance_manager.domain.interactors.AnalyticsInteractor;
 import mephi.finance_manager.domain.interactors.AuthInteractor;
 import mephi.finance_manager.domain.interactors.CategoryInteractor;
@@ -25,39 +18,6 @@ import mephi.finance_manager.domain.repositories.UserTokenRepository;
 @Configuration
 public class ApplicationConfig {
 
-    private final EntityManager entityManager;
-    private final StringRedisTemplate stringRedisTemplate;
-
-    public ApplicationConfig(EntityManager entityManager, StringRedisTemplate stringRedisTemplate) {
-        this.entityManager = entityManager;
-        this.stringRedisTemplate = stringRedisTemplate;
-    }
-
-    @Bean
-    public CategoryRepository categoryRepository() {
-        return new CategoryRepositoryImpl(entityManager);
-    }
-
-    @Bean
-    public ExpenseRepository expenseRepository() {
-        return new ExpenseRepositoryImpl(entityManager);
-    }
-
-    @Bean
-    public IncomeRepository incomeRepository() {
-        return new IncomeRepositoryImpl(entityManager);
-    }
-
-    @Bean
-    public UserRepository userRepository() {
-        return new UserRepositoryImpl(entityManager);
-    }
-
-    @Bean
-    public UserTokenRepository userTokenRepository() {
-        return new UserTokenRepositoryImpl(stringRedisTemplate);
-    }
-
     @Bean
     public AuthInteractor authInteractor(UserTokenRepository userTokenRepo, UserRepository userRepo) {
         return new AuthInteractor(userRepo, userTokenRepo);
@@ -72,21 +32,24 @@ public class ApplicationConfig {
     public ExpenseInteractor expenseInteractor(
             ExpenseRepository expenseRepo,
             UserTokenRepository userTokenRepo,
-            UserRepository userRepo) {
-        return new ExpenseInteractor(userTokenRepo, expenseRepo, userRepo);
+            UserRepository userRepo,
+            CategoryRepository categoryRepo) {
+        return new ExpenseInteractor(userTokenRepo, expenseRepo, userRepo, categoryRepo);
     }
 
     @Bean
     public IncomeInteractor incomeInteractor(
             IncomeRepository incomeRepo,
             UserTokenRepository userTokenRepo,
-            UserRepository userRepo) {
-        return new IncomeInteractor(incomeRepo, userTokenRepo, userRepo);
+            UserRepository userRepo,
+            CategoryRepository categoryRepo) {
+        return new IncomeInteractor(incomeRepo, userTokenRepo, userRepo, categoryRepo);
     }
 
     @Bean
-    public CategoryInteractor categoryInteractor(CategoryRepository categoryRepo, UserTokenRepository userTokenRepo) {
-        return new CategoryInteractor(categoryRepo, userTokenRepo);
+    public CategoryInteractor categoryInteractor(CategoryRepository categoryRepo, UserTokenRepository userTokenRepo,
+            ExpenseRepository expenseRepo, IncomeRepository incomeRepo) {
+        return new CategoryInteractor(categoryRepo, userTokenRepo, expenseRepo, incomeRepo);
     }
 
     @Bean
